@@ -114,4 +114,4 @@ pcalc-fixed/
 
 ## 📄 License
 
-Project distributed under GPL-2.0 License. See [LICENSE](LICENSE) file for details.
+Project distributed under GPL-2.0 License. See LICENSE file for details.
