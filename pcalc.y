@@ -56,87 +56,96 @@ int fPrecisionFpFrac = 16;
 %token  <sym>   TO FROM STORE RESTORE STRVAR
 
 %type   <val>   expr
+%type   <sym>   command str
 %type   <val>   asgn
-%type   <sym>   junk
-%type   <sym>   str
 
-%right  '='
-%left   '|'
-%left   '&'
-%left   '<' '>'
-%left   '+' '-'
-%left   '*' '/' '%'
-%left   UNARYMINUS
-%right  '^'                                             /*  exponentiation */
+/* add fictive tokens for resolve conflicts */
+%token END_EXPR IBUILTIN_EMPTY IBUILTIN_ARG
+
+%right '='
+%left '|'
+%left '&'
+%left 'X'
+%left '<' '>'
+%left '+' '-'
+%left '*' '/' '%'
+%right '^'
+%right '~' UNARYMINUS
+
+%precedence END_EXPR
+%precedence IBUILTIN_EMPTY
+%precedence STR STRVAR
+%precedence IBUILTIN_ARG
 
 %%
 
-list:
-        |   list
-        |   list asgn
-        |   list junk
-        |   list expr               {
-                                    print_num($2);
-                                    }
-        |   list STORE VAR          {
-                                    store("pcalc.var", $3->name, $3->u.val);
-                                    }
-        |   list STORE VAR TO STR   {
-                                    store($5->name, $3->name, $3->u.val);
-                                    }
-        |   list RESTORE VAR        {
-                                    restore("pcalc.var",
-                                            $3->name, &($3->u.val));
-                                    }
-        |   list RESTORE VAR FROM STR  {
-                                    restore($5->name,
-                                            $3->name, &($3->u.val));
-                                    }
-        |   list error              { yyerrok ; }
-        ;
+list:   /* empty */
+    | list element
+    ;
 
+element: command
+    | asgn
+    | expr               %prec END_EXPR {
+                         print_num($1);
+                         }
+    | error              { yyerrok ; }
+    ;
 
-junk:       IBUILTIN str            { (*($1->u.iptr))($2->u.str) ; }
-        |   IBUILTIN                { }
-        |   IBUILTIN VAR            { (*($1->u.iptr))($2->u.val) ; }
-        |   IBUILTIN expr           { (*($1->u.iptr))($2) ;       }
-        |   STR                     { printf("%s", $1->name);}
-        |   STRVAR                  { printf("%s", $1->u.str);}
-        ;
+command: STORE VAR          {
+                            store("pcalc.var", $2->name, $2->u.val);
+                            }
+    | STORE VAR TO STR   {
+                            store($4->name, $2->name, $2->u.val);
+                            }
+    | RESTORE VAR        {
+                            restore("pcalc.var",
+                                    $2->name, &($2->u.val));
+                            }
+    | RESTORE VAR FROM STR  {
+                            restore($4->name,
+                                    $2->name, &($2->u.val));
+                            }
+    | IBUILTIN str %prec IBUILTIN_ARG { 
+        char *str_arg = $2->u.str; 
+        (*($1->u.iptr))((void*)str_arg); 
+      }
+    | IBUILTIN           %prec IBUILTIN_EMPTY { 
+        (*($1->u.iptr))((void*)0);
+      }
+    | STR                { printf("%s", $1->name);}
+    | STRVAR             { printf("%s", $1->u.str);}
+    ;
 
-asgn:   VAR '=' expr                { $$ = $1->u.val = $3 ; $1->type = VAR ; }
-        | STRVAR '=' STR            { $1->u.str = $3->name; $1->type = STRVAR ;}
-        ;
+asgn:   VAR '=' expr     { $$ = $1->u.val = $3 ; $1->type = SYM_VAR ; }
+    | STRVAR '=' STR     { $1->u.str = $3->name; $1->type = SYM_STRVAR ; $$ = 0; }
+    ;
 
+expr:   NUMBER
+    | VAR                 { $$ = $1->u.val ; }
+    | BUILTIN '(' expr ')'    { $$ = (*($1->u.ptr))($3) ; }
+    | '~' expr            { $$ = ~((long long)$2); }
+    | expr '|' expr       { $$ = (long long)$1 | (long long)$3; }
+    | expr '&' expr       { $$ = (long long)$1 & (long long)$3; }
+    | expr 'X' expr       { $$ = (long long)$1 ^ (long long)$3; }
+    | expr '<' expr       { $$ = (long long)$1 << (long long)$3; }
+    | expr '>' expr       { $$ = (long long)$1 >> (long long)$3; }
+    | expr '+' expr       { $$ = $1 + $3 ; }
+    | expr '-' expr       { $$ = $1 - $3 ; }
+    | expr '*' expr       { $$ = $1 * $3 ; }
+    | expr '/' expr       {
+                            if ($3 == 0.0)
+                                execerror("division by zero", "") ;
+                            $$ = $1 / $3 ;
+                          }
+    | expr '%' expr       { $$ = (long long)$1 % (long long)$3 ; }
+    | expr '^' expr       { $$ = Pow( $1, $3) ; }
+    | '(' expr ')'        { $$ = $2 ; }
+    | '-' expr  %prec UNARYMINUS { $$ = -$2 ; }
+    ;
 
-expr:       NUMBER
-        |   VAR                     { $$ = $1->u.val ; }
-        |   BUILTIN '(' expr ')'    { $$ = (*($1->u.ptr))($3) ; }
-        |   BUILTIN   expr          { $$ = (*($1->u.ptr))($2) ; }
-        |   '~' expr                { $$ = ~((long long)$2); }
-        |   expr '|' expr           { $$ = (long long)$1 | (long long)$3; }
-        |   expr '&' expr           { $$ = (long long)$1 & (long long)$3; }
-        |   expr 'X' expr           { $$ = (long long)$1 ^ (long long)$3; }
-        |   expr '<' expr           { $$ = (long long)$1 << (long long)$3; }
-        |   expr '>' expr           { $$ = (long long)$1 >> (long long)$3; }
-        |   expr '+' expr           { $$ = $1 + $3 ; }
-        |   expr '-' expr           { $$ = $1 - $3 ; }
-        |   expr '*' expr           { $$ = $1 * $3 ; }
-        |   expr '/' expr           {
-                                    if ($3 == 0.0)
-                                    execerror("division by zero", "") ;
-                                    $$ = $1 / $3 ;
-                                    }
-        |   expr '%' expr           { $$ = (long long)$1 % (long long)$3 ; }
-        |   expr '^' expr           { $$ = Pow( $1, $3) ; }
-        |   '(' expr ')'            { $$ = $2 ; }
-        |   '-' expr  %prec UNARYMINUS { $$ = -$2 ; }
-        ;
-
-str:     STR                    { }
-        |STRVAR                 { }
-        ;
-
+str:    STR               { $$ = $1; }
+    |   STRVAR            { $$ = $1; }
+    ;
 
 %%
 

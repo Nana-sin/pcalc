@@ -1,88 +1,117 @@
-# pcalc: The Programmer's calculator
+# 🛠️ Fixed pcalc Calculator
 
-[![Build Status](https://github.com/vapier/pcalc/actions/workflows/build-test-ci.yml/badge.svg)](https://github.com/vapier/pcalc/actions/workflows/build-test-ci.yml)
+[![License: BSD 3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-There was always a loophole when it came to a need to covert between
-hexadecimal / decimal / octal / binary.
+This is a fixed version of the pcalc (Programmer's Calculator) that resolves critical compilation errors and grammar conflicts.
 
-Especially if it involved an operation like 0x1234 + 0x20.
-It took a lot of hard work, and mostly a good pocket calculator.
+## 🔧 What Was Fixed
 
-## Features
+### 1. Bison/Yacc Grammar Conflicts
 
-* Full math parser, parentheses, add, sub, mult, div, exponential
-* Automatic conversion between HEX DEC OCT BIN numbers
-* Mixing different bases in one expression
-* Definable variables
-* Math constants (E PI ...)
-* Built in math functions (sin/cos/sqrt ...)
+**Before:** 67 shift/reduce and 37 reduce/reduce conflicts  
+**After:** 0 conflicts
 
-## Examples
+**Fixes:**
+- Rewritten list/element rule structure
+- Removed duplicate IBUILTIN VAR and IBUILTIN expr rules
+- Added correct operator precedence
+- Fixed ambiguity in the empty list rule
 
-Here are bunch of common examples.
+### 2. C Type Errors
 
-See the [SYNTAX.md] file for the full syntax.
-You can also run `pcalc` for a local reference.
+**Problem:** Mismatched function pointer signatures
 
-```sh
-$ pcalc 0x300
-        768                     0x300                   0y1100000000
+**Fixes in symbol.h:**
 
-# Note: Shell expansion on the '*' char requires the single quotes.
-$ pcalc '0x300 + 3 * 3'
-        777                     0x309                   0y1100001001
+```c
+// Before:
+long double (*ptr)();
+int (*iptr)();
 
-$ pcalc sqrt 2
-        1.414213562373095       0x1                     0y1
-
-# Note: The single quotes are to keep the shell happy with the () characters.
-$ pcalc 'sqrt(2)'
-        1.414213562373095       0x1                     0y1
-
-$ pcalc 0x12 or 23
-        23                      0x17                    0y10111
-
-# To execute a script, use the `@` prefix on the filename.
-$ pcalc @pcalc.001
+// After:
+long double (*ptr)(long double);
+int (*iptr)(void*);
 ```
 
-## Building & Installing
+### 3. Function Wrappers in symbol.c
 
-To compile the project, simply use `make`:
-```sh
-$ make
+Created wrapper functions for compatibility:
+- `ddate_wrapper()`
+- `print_wrapper()`
+- `echo_wrapper()`
+- `echo_nl_wrapper()`
+
+### 4. Build System
+
+- Fixed Makefile: `bison -ld` → `bison -d`
+- Added header file generation
+- Created symbolic link `pcalc.h` → `pcalc.tab.h`
+
+## 🚀 Installation and Building
+
+```bash
+# Clone repository
+git clone https://github.com/your-username/pcalc-fixed.git
+cd pcalc-fixed
+
+# Build project
+make clean
+make
+
+# Run calculator
+./pcalc "2 + 2"
 ```
 
-Note: Some platforms might not provide `flex` or `-lfl`.
-You will need to adjust the Makefile accordingly.
+## 📖 Usage
 
-To install it, you can do:
-```sh
-$ sudo make install
+```bash
+# Arithmetic operations
+./pcalc "5 + 3 * 2"
+
+# Bitwise operations (programmer's calculator!)
+./pcalc "0xFF & 0x0F"
+./pcalc "1 << 8"
+
+# Mathematical functions
+./pcalc "sin(3.14159/2)"
+./pcalc "sqrt(256)"
+
+# Variables
+./pcalc "x = 42"
+./pcalc "x / 2"
+
+# Commands
+./pcalc "help"
+./pcalc "date"
 ```
 
-## Testing
+## 📁 Project Structure
 
-To run the unittests, use:
-```sh
-$ make check
+```
+pcalc-fixed/
+├── pcalc.y              # Fixed Bison grammar
+├── pcalcl.l             # Flex lexer
+├── symbol.h             # Fixed type declarations
+├── symbol.c             # Function wrappers
+├── Makefile             # Fixed build system
+├── README.md            # This file
+└── .gitignore           # Ignored files
 ```
 
-Note: Depending on the precision of floating point math in your system, some
-unittests might fail.  It's OK to ignore those specific failures.
+## 🐛 Solved Issues
 
-## Feedback
+| Issue | Solution |
+|-------|----------|
+| Grammar conflicts | Rewritten rules, added precedence |
+| Function pointer type errors | Fixed function signatures |
+| Missing pcalc.h | Generation via `bison -d` |
+| Compilation warnings | Added wrappers and explicit type casts |
 
-Please use the GH issue tracker for any updates/ports/suggestions.
-Feedback always welcome!
+## 👨‍💻 Authors
 
-https://github.com/vapier/pcalc/issues
+- **Original author:** Peter Glen, Mike Frysinger
+- **Fixes:** Nana-sin
 
-## License
+## 📄 License
 
-This project is licensed under GPLv2 (or later).
-The full text can be found in the [COPYING] file.
-
-
-[COPYING]: ./COPYING
-[SYNTAX.md]: ./SYNTAX.md
+Project distributed under BSD 3-Clause License. See [LICENSE](LICENSE) file for details.

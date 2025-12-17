@@ -1,18 +1,25 @@
-*.diff
-*.patch
-*.orig
-*.rej
-
+# compile files
+pcalc
 *.o
+*.exe
 
-/pcalc
-/pcalc.c
-/pcalc.h
-/pcalcl.c
-/*.tar.lzma
-/*.tar.xz
+# files parser and lekser
+pcalc.c
+pcalcl.c
+pcalc.h
+pcalc.tab.h
+pcalc.output
 
-/ptest/package.m4
-/ptest/testsuite
-/ptest/testsuite.dir/
-/ptest/testsuite.log
+# temp files
+*.tmp
+*.swp
+*~
+
+# dir build
+build/
+dist/
+*.dSYM/
+
+# back files
+*.bak
+*.backup

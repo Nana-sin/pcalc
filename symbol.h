@@ -1,25 +1,29 @@
 #ifndef symbol_defined
 #define symbol_defined
 
-/* -------- Macros: ------------------------------------------------------ */
-
-typedef struct Symbol {    /* symbol table entry */
+typedef struct Symbol {
          char *name ;
-         short type ;      /* VAR, BLTIN, UNDEF  */
+         short type ;
          union {
-               int    len;                /* if str */
-               char   *str;               /* if str */
-               char   cval;               /* if VAR */
-               int    ival;               /* if VAR */
-               long long  lval;           /* if VAR */
-               long double val;           /* if VAR */
-               long double (*ptr)();      /* if BUILTIN */
-               int    (*iptr)();          /* if IBUILTIN */
+               int    len;
+               char   *str;
+               char   cval;
+               int    ival;
+               long long  lval;
+               long double val;
+               long double (*ptr)(long double);
+               int    (*iptr)(void*);
          } u ;
   struct Symbol *next ;
 } Symbol ;
 
-/* -------- Protos ------------------------------------------------------- */
+/* FIX */
+#define SYM_UNDEF   0
+#define SYM_VAR     1
+#define SYM_BUILTIN 2
+#define SYM_IBUILTIN 3
+#define SYM_STRVAR  4
+/* FIX */
 
 void    init_sym(void);
 void    dump_sym(void);

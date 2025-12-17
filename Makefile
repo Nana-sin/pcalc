@@ -7,7 +7,7 @@
 VERSION = 6
 
 CC   ?= cc
-YACC  = bison -ld
+YACC  = bison -d
 LEX   = flex
 
 CFLAGS   ?= -ggdb
