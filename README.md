@@ -51,7 +51,7 @@ Created wrapper functions for compatibility:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/pcalc-fixed.git
+git clone https://github.com/Nana-sin/pcalc.git
 cd pcalc-fixed
 
 # Build project
